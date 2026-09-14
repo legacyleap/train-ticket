@@ -88,7 +88,16 @@ public class StationServiceImpl implements StationService {
 
     @Override
     public Response queryForId(String stationName, HttpHeaders headers) {
-        Station station = repository.findByName(stationName);
+        String normalised = stationName == null ? "" : stationName.trim();
+        Station station = repository.findByName(normalised);
+        if (station == null) {
+            for (Station candidate : repository.findAll()) {
+                if (candidate.getName() != null && candidate.getName().equalsIgnoreCase(normalised)) {
+                    station = candidate;
+                    break;
+                }
+            }
+        }
 
         if (station  != null) {
             return new Response<>(1, success, station.getId());
