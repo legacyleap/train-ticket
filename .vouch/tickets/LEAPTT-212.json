@@ -1,0 +1,14 @@
+{
+  "key": "LEAPTT-212",
+  "type": "bug",
+  "summary": "calculateRefund throws NullPointerException when price is null",
+  "description": "Orders imported from the legacy system have price=null; cancel crashes.",
+  "scope": {
+    "paths": [
+      "ts-cancel-service/**"
+    ],
+    "components": [
+      "ts-cancel-service"
+    ]
+  }
+}

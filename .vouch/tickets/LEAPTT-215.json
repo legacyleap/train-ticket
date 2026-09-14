@@ -1,0 +1,14 @@
+{
+  "key": "LEAPTT-215",
+  "type": "docs",
+  "summary": "Document partial-miss behaviour of queryForIdBatch",
+  "description": "Callers keep asking what happens when one name in the batch is unknown.",
+  "scope": {
+    "paths": [
+      "ts-station-service/**"
+    ],
+    "components": [
+      "ts-station-service"
+    ]
+  }
+}

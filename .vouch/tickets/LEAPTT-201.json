@@ -1,0 +1,14 @@
+{
+  "key": "LEAPTT-201",
+  "type": "bug",
+  "summary": "Station id lookup fails for names with trailing spaces or different case",
+  "description": "StationServiceImpl.queryForId does an exact findByName; 'Shang Hai ' returns Not exists.",
+  "scope": {
+    "paths": [
+      "ts-station-service/**"
+    ],
+    "components": [
+      "ts-station-service"
+    ]
+  }
+}

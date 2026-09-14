@@ -1,0 +1,14 @@
+{
+  "key": "LEAPTT-210",
+  "type": "chore",
+  "summary": "Slim order payload in rebook",
+  "description": "Rebook deserialises the full Order for every request.",
+  "scope": {
+    "paths": [
+      "ts-rebook-service/**"
+    ],
+    "components": [
+      "ts-rebook-service"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "key": "LEAPTT-208",
+  "type": "story",
+  "summary": "Faster left-ticket count on the search page",
+  "description": "Search page p95 is 800ms; most of it is the travel \u2192 seat round trip.",
+  "scope": {
+    "paths": [
+      "ts-travel-service/**"
+    ],
+    "components": [
+      "ts-travel-service"
+    ]
+  }
+}

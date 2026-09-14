@@ -1,0 +1,89 @@
+# Vouch — architectural conformance review on every pull request.
+#
+# The engine lives in this repository under tools/vouch (stdlib Python, no install). The expensive
+# layer (architecture model) is cached per base SHA; the per-PR check is the cheap deterministic pass.
+# The review is posted as ONE sticky comment that is updated in place on every push. The job fails
+# only when the PR `violates` the intended architecture, so a tech lead can still waive it.
+name: vouch
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: vouch-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Vouch review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Fetch the base branch
+        run: git fetch --no-tags origin "${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}"
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - name: Restore the architecture model (expensive layer, per base SHA)
+        id: arch
+        uses: actions/cache@v4
+        with:
+          path: .vouch/cache/architecture.json
+          key: vouch-arch-${{ github.event.pull_request.base.sha }}
+
+      - name: Build the architecture model if the base moved
+        if: steps.arch.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .vouch/cache
+          PYTHONPATH=tools/vouch python3 -m vouch infer . --out .vouch/cache/architecture.json
+
+      - name: Resolve the ticket (key in PR title/body → .vouch/tickets/<KEY>.json)
+        id: ticket
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          KEY="$(printf '%s\n%s' "$PR_TITLE" "$PR_BODY" | grep -oE '[A-Z][A-Z0-9]+-[0-9]+' | head -1 || true)"
+          if [ -n "$KEY" ] && [ -f ".vouch/tickets/$KEY.json" ]; then
+            echo "args=--ticket .vouch/tickets/$KEY.json" >> "$GITHUB_OUTPUT"
+            echo "ticket $KEY found"
+          else
+            echo "args=" >> "$GITHUB_OUTPUT"
+            echo "no ticket file for '${KEY:-none}' — functional conformance not checked"
+          fi
+
+      - name: Review (cheap layer, per PR)
+        id: review
+        env:
+          VOUCH_UI_URL: ${{ vars.VOUCH_UI_URL }}
+          VOUCH_PR_ID: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set +e
+          PYTHONPATH=tools/vouch python3 -m vouch review . \
+            --base "origin/${{ github.event.pull_request.base.ref }}" --head HEAD \
+            --arch .vouch/cache/architecture.json ${{ steps.ticket.outputs.args }} \
+            --out .vouch/cache/review.json --markdown > .vouch/cache/comment.md
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          tail -n 3 .vouch/cache/comment.md
+
+      - name: Post or update the Vouch comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: vouch
+          path: .vouch/cache/comment.md
+
+      - name: Gate
+        run: |
+          if [ "${{ steps.review.outputs.status }}" = "3" ]; then
+            echo "::error::Vouch: this pull request violates the intended architecture (see the Vouch comment)"; exit 1
+          fi
+          echo "Vouch: no architectural violation"

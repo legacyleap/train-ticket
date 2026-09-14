@@ -1,0 +1,14 @@
+{
+  "key": "LEAPTT-205",
+  "type": "story",
+  "summary": "Show order count and revenue on trip detail",
+  "description": "Product wants order count and total paid amount per trip on the admin trip page.",
+  "scope": {
+    "paths": [
+      "ts-travel-service/**"
+    ],
+    "components": [
+      "ts-travel-service"
+    ]
+  }
+}
