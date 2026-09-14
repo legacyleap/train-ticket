@@ -76,6 +76,13 @@ def comment_markdown(r: dict[str, Any]) -> str:
         lines.append("</details>")
         lines.append("")
     lines.append("---")
+    import os
+
+    ui = os.environ.get("VOUCH_UI_URL", "").rstrip("/")
+    pr_id = (os.environ.get("VOUCH_PR_ID") or str(r.get("id", ""))).split("/")[-1]
+    if ui and pr_id:
+        lines.append(f"**Open in Vouch:** {ui}/#/review/{pr_id} · rules: {ui}/#/rules · drift: {ui}/#/drift")
+        lines.append("")
     lines.append(f"<sub>Vouch checked against the architecture model of {r['model']['architecture_version']} "
                  f"({r['model']['modules_in_graph']} modules, reused — not rebuilt for this PR) in "
                  f"{r['duration_ms']} ms. 👎 dismisses a finding in one click; `/vouch pattern` proposes it as an "
