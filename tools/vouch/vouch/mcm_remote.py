@@ -76,9 +76,20 @@ def fetch_bundle(project_id: str, data_dir: Path, max_assemblies: int = 60) -> d
                 comp = _compact_component(res)
                 # accept only when the server's file matches the PR's file (new files are unknown to the MCM)
                 tail = (h.get("path") or "").split("/src/", 1)[-1]
-                if comp.get("file_path") and tail and not comp["file_path"].endswith(tail):
+                fp = comp.get("file_path") or (comp.get("identity") or {}).get("file_path") or ""
+                if tail and (not fp or not fp.endswith(tail)):
                     comp = {"unknown_to_mcm": True, "note": f"'{cls}' resolved to {comp['file_path']} — not this file (new in the PR?)"}
                 components[cls] = comp
+                if not comp.get("unknown_to_mcm") and "simulations" not in locals():
+                    simulations: dict[str, Any] = {}
+                if not comp.get("unknown_to_mcm") and cls not in simulations and len(simulations) < 8:
+                    sim = safe("mcm_simulate_code_change", component_name=cls, change_description=f["title"], simulation_depth=3)
+                    if isinstance(sim, dict) and "blast_radius" in sim:
+                        simulations[cls] = {k: sim.get(k) for k in ("total_affected", "risk_score", "risk_category",
+                                                                    "regression_target_count", "layers_touched", "boundary_crossings",
+                                                                    "mitigation_steps")}
+                        br = sim.get("blast_radius")
+                        simulations[cls]["blast_radius"] = br[:20] if isinstance(br, list) else br
 
     bundle = {
         "fetched_at": _now(), "server": server, "project_id": project_id,
@@ -103,6 +114,7 @@ def fetch_bundle(project_id: str, data_dir: Path, max_assemblies: int = 60) -> d
         "tech_debt": debt.get("components", debt.get("top_components", debt)) if isinstance(debt, dict) else debt,
         "pr_impact": impacts,
         "components": components,
+        "simulations": locals().get("simulations", {}),
     }
     (data_dir / "mcm-remote.json").write_text(json.dumps(bundle, indent=1))
     knowledge = project_knowledge(bundle, arch, reviews)

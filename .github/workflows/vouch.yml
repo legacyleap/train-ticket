@@ -22,10 +22,10 @@ jobs:
     name: Vouch review
     runs-on: ubuntu-latest
     steps:
+      # the merge ref (base + PR) so tools/vouch, .vouch/rules.json and the tickets come from the base branch
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Fetch the base branch
         run: git fetch --no-tags origin "${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}"
