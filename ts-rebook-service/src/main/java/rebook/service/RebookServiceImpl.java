@@ -40,6 +40,20 @@ public class RebookServiceImpl implements RebookService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RebookServiceImpl.class);
 
+    public boolean notifyRebooked(String accountId, String orderId, HttpHeaders headers) {
+        RebookServiceImpl.LOGGER.info("[notifyRebooked][orderId: {}]", orderId);
+        edu.fudan.common.entity.NotifyInfo notifyInfo = new edu.fudan.common.entity.NotifyInfo();
+        notifyInfo.setOrderNumber(orderId);
+        HttpEntity requestEntity = new HttpEntity(notifyInfo, headers);
+        String notification_service_url = getServiceUrl("ts-notification-service");
+        ResponseEntity<Boolean> re = restTemplate.exchange(
+                notification_service_url + "/api/v1/notifyservice/notification/order_changed_success",
+                HttpMethod.POST,
+                requestEntity,
+                Boolean.class);
+        return re.getBody() != null && re.getBody();
+    }
+
     private String getServiceUrl(String serviceName) {
         return "http://" + serviceName;
     }

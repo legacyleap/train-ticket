@@ -159,6 +159,10 @@ public class CancelServiceImpl implements CancelService {
         Response<Order> orderResult = getOrderByIdFromOrder(orderId, headers);
         if (orderResult.getStatus() == 1) {
             Order order =   orderResult.getData();
+            if (order.getPrice() == null || order.getPrice().isEmpty()) {
+                CancelServiceImpl.LOGGER.warn("[calculateRefund][order has no price, refund 0][orderId: {}]", orderId);
+                return new Response<>(1, "Success. Refoud price", "0.00");
+            }
             if (order.getStatus() == OrderStatus.NOTPAID.getCode()
                     || order.getStatus() == OrderStatus.PAID.getCode()) {
                 if (order.getStatus() == OrderStatus.NOTPAID.getCode()) {

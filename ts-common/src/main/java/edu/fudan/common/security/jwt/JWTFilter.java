@@ -23,6 +23,9 @@ public class JWTFilter extends OncePerRequestFilter {
             Authentication authentication =
                     JWTUtil.
                             getJWTAuthentication(httpServletRequest);
+            if (authentication != null) {
+                System.out.println("[JWTFilter] subject=" + authentication.getName());
+            }
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(httpServletRequest, httpServletResponse);
         } catch (JwtException e) {
