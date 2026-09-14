@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "rules": [
+    {"id": "LAYER-001", "status": "confirmed", "approved_by": "Rajat S.", "note": "Controller → service → repository. No exceptions for 'hot' endpoints."},
+    {"id": "SVC-ISO", "status": "confirmed", "approved_by": "Rajat S."},
+    {"id": "KERNEL-ENTITY", "status": "confirmed", "approved_by": "Rajat S.", "note": "The 28 existing copies are debt, not precedent; no new ones."},
+    {"id": "INTEG-ASYNC", "status": "confirmed", "approved_by": "Rajat S.", "note": "cancel-service's REST call to notification is on the fix list."},
+    {"id": "INTEG-CTRL", "status": "confirmed", "approved_by": "Rajat S."},
+    {"id": "OWNS-CONSIGNPRICE", "status": "rejected", "approved_by": "Rajat S.", "note": "consign-price is an internal helper of consign; vocabulary overlaps by design."},
+    {
+      "id": "API-001",
+      "title": "New REST controllers are named <Domain>Controller under <service>/controller",
+      "statement": "Every new class exposing endpoints lives in the controller package and ends with Controller, so the API surface can be listed by name.",
+      "kind": "naming",
+      "params": {"path_glob": "ts-*/src/main/java/*/controller/*.java", "module_suffix": "Controller.java", "new_only": true},
+      "status": "confirmed", "severity": "low",
+      "source": "architect: Rajat S., 2026-09-14",
+      "proposed_by": "Rajat S.", "approved_by": "Rajat S.", "created_at": "2026-09-14T09:30:00Z"
+    },
+    {
+      "id": "CFG-001",
+      "title": "Gateway routes and service configuration need a ticket that names them",
+      "statement": "A change to ts-gateway-service or any application.yml is a deployment change; the ticket must mention it explicitly.",
+      "kind": "sensitive_path",
+      "params": {"paths": ["ts-gateway-service/", "application.yml"], "why": "deployment / routing surface"},
+      "status": "confirmed", "severity": "high",
+      "source": "architect: Rajat S., 2026-09-14",
+      "proposed_by": "Dhruv K.", "approved_by": "Rajat S.", "created_at": "2026-09-14T09:32:00Z"
+    },
+    {
+      "id": "SAGA-001",
+      "title": "No new synchronous dependencies from preserve-service",
+      "statement": "Booking (preserve) already calls 11 services in one request path. Until the saga refactor lands, no new REST dependency is added to preserve or preserve-other; new steps go through the queue.",
+      "kind": "manual",
+      "params": {},
+      "status": "confirmed", "severity": "high",
+      "source": "architect: Rajat S., 2026-09-14 (ADR-7 draft)",
+      "proposed_by": "Rajat S.", "approved_by": "Rajat S.", "created_at": "2026-09-14T09:35:00Z"
+    }
+  ]
+}
