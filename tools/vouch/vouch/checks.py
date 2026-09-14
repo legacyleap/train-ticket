@@ -204,6 +204,16 @@ def check_layers(ctx: PRContext, next_id: Any) -> tuple[list[Finding], list[dict
                 fix = (f"Move the needed type into `shared/domain/` (or expose it behind a port in "
                        f"`shared/application/ports_out/`) and import it from there, or keep this logic in "
                        f"`{dst_ctx}` where its vocabulary already lives.")
+            elif ctx.graph.language == "java":
+                title = f"{src_layer} layer imports {dst_layer}: `{target.rsplit('.', 1)[-1]}`"
+                explanation = (
+                    f"`{head.path}` ({src_ctx}/{src_layer}) imports `{target}` ({dst_ctx}/{dst_layer}). "
+                    f"In this system the direction is controller → service → repository/entity: the service layer is "
+                    f"where validation, transactions and orchestration live and where they are tested. A {src_layer} "
+                    f"that reaches into the {dst_layer} skips all of that."
+                )
+                fix = (f"Call the {src_ctx} service layer instead: add the method you need to the service interface "
+                       f"and implementation, and drop the direct import of `{target.rsplit('.', 1)[-1]}`.")
             else:
                 title = f"{src_layer} layer imports {dst_layer}: `{target.rsplit('.', 1)[-1]}`"
                 explanation = (
@@ -229,8 +239,11 @@ def check_layers(ctx: PRContext, next_id: Any) -> tuple[list[Finding], list[dict
                 [f"rule {rid}: {why}", "import is at runtime (not under TYPE_CHECKING)",
                  "absent on the base branch"],
                 fix,
-                f"In {head.path}, remove the direct import of {target} and depend on an outbound port in "
-                f"{src_ctx}/application/ports_out/ instead; wire the adapter in infra_factory. Keep behaviour identical.",
+                (f"In {head.path}, remove the direct import of {target}; add the needed method to the {src_ctx} service "
+                 f"interface/implementation and call it from here. Keep behaviour identical."
+                 if ctx.graph.language == "java" else
+                 f"In {head.path}, remove the direct import of {target} and depend on an outbound port in "
+                 f"{src_ctx}/application/ports_out/ instead; wire the adapter in infra_factory. Keep behaviour identical."),
                 snippet(fc.patch, line),
             ))
     conformant = []

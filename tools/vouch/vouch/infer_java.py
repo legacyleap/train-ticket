@@ -217,6 +217,11 @@ def measure_baseline(graph: ImportGraph, contexts: list[dict[str, Any]], mq_cons
                      kernel: str | None = None) -> list[dict[str, Any]]:
     """Real drift that already exists on the default branch, with the modules that carry it."""
     out: list[dict[str, Any]] = []
+    known = {c["id"] for c in contexts}
+    graph_modules_all = graph.modules
+    graph = type(graph)(package=graph.package, modules={k: m for k, m in graph.modules.items() if m.context in known},
+                        reverse=graph.reverse, test_modules=graph.test_modules, language=graph.language,
+                        service_calls=graph.service_calls, service_callers=graph.service_callers)
     kernel_entities = {m.name.rsplit(".", 1)[-1]: m.name for m in graph.modules.values()
                        if kernel and m.context == kernel and m.layer == "entity"}
 
