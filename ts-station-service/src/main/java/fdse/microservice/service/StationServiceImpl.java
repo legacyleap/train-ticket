@@ -100,6 +100,12 @@ public class StationServiceImpl implements StationService {
 
 
     @Override
+    /**
+     * Resolve a batch of station names to ids.
+     *
+     * <p>Unknown names are skipped, not reported: the returned list can be shorter than
+     * {@code nameList}. Callers that need positional results must resolve one by one.
+     */
     public Response queryForIdBatch(List<String> nameList, HttpHeaders headers) {
         Map<String, String> result = new HashMap<>();
         List<Station> stations = repository.findByNames(nameList);
