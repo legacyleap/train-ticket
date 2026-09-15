@@ -2,8 +2,12 @@
 #
 # The engine lives in this repository under tools/vouch (stdlib Python, no install). The expensive
 # layer (architecture model) is cached per base SHA; the per-PR check is the cheap deterministic pass.
-# The review is posted as ONE sticky comment that is updated in place on every push. The job fails
-# only when the PR `violates` the intended architecture, so a tech lead can still waive it.
+# Output on the PR:
+#   * ONE sticky summary comment, updated in place on every push;
+#   * one inline comment per finding, on the diff line it points at (deleted and re-posted on re-run).
+# Identity: with the Vouch GitHub App installed (vars.VOUCH_APP_ID + secrets.VOUCH_APP_PRIVATE_KEY),
+# every comment is posted as `vouch[bot]` with the app's avatar; otherwise as github-actions[bot].
+# The job fails only when the PR `violates` the intended architecture, so a tech lead can still waive it.
 name: vouch
 on:
   pull_request:
@@ -32,6 +36,16 @@ jobs:
 
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
+
+      # Post as the Vouch GitHub App when it is installed; fall back to the workflow token otherwise.
+      - name: Vouch identity (GitHub App token)
+        id: app
+        if: ${{ vars.VOUCH_APP_ID != '' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.VOUCH_APP_ID }}
+          private-key: ${{ secrets.VOUCH_APP_PRIVATE_KEY }}
+        continue-on-error: true
 
       - name: Restore the architecture model (expensive layer, per base SHA)
         id: arch
@@ -68,6 +82,7 @@ jobs:
           VOUCH_PR_ID: ${{ github.event.pull_request.head.ref }}
         run: |
           set +e
+          mkdir -p .vouch/cache
           PYTHONPATH=tools/vouch python3 -m vouch review . \
             --base "origin/${{ github.event.pull_request.base.ref }}" --head HEAD \
             --arch .vouch/cache/architecture.json ${{ steps.ticket.outputs.args }} \
@@ -75,15 +90,26 @@ jobs:
           echo "status=$?" >> "$GITHUB_OUTPUT"
           tail -n 3 .vouch/cache/comment.md
 
-      - name: Post or update the Vouch comment
+      - name: Post or update the Vouch summary comment
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: vouch
           path: .vouch/cache/comment.md
+          GITHUB_TOKEN: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
+
+      - name: Inline comments on the code (one per finding)
+        env:
+          GITHUB_TOKEN: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
+          VOUCH_UI_URL: ${{ vars.VOUCH_UI_URL }}
+          VOUCH_PR_ID: ${{ github.event.pull_request.head.ref }}
+        run: |
+          PYTHONPATH=tools/vouch python3 -m vouch github-review .vouch/cache/review.json \
+            --repo "${{ github.repository }}" --pr "${{ github.event.pull_request.number }}" \
+            --sha "${{ github.event.pull_request.head.sha }}"
 
       - name: Gate
         run: |
           if [ "${{ steps.review.outputs.status }}" = "3" ]; then
-            echo "::error::Vouch: this pull request violates the intended architecture (see the Vouch comment)"; exit 1
+            echo "::error::Vouch: this pull request violates the intended architecture (see the Vouch comments)"; exit 1
           fi
           echo "Vouch: no architectural violation"

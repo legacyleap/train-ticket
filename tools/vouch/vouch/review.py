@@ -137,8 +137,14 @@ def _file_row(ctx: checks.PRContext, fc: Any, findings: list[dict[str, Any]]) ->
         overview = "Documentation only."
     else:
         overview = "Touched lines stay inside the module's existing contract."
+    ranges: list[list[int]] = []
+    for ln in sorted(fc.added_lines):
+        if ranges and ln == ranges[-1][1] + 1:
+            ranges[-1][1] = ln
+        else:
+            ranges.append([ln, ln])
     return {"path": fc.path, "status": fc.status, "additions": fc.additions, "deletions": fc.deletions,
-            "context": context, "layer": layer, "score": score, "overview": overview}
+            "context": context, "layer": layer, "score": score, "overview": overview, "added_ranges": ranges}
 
 
 def _summary(pr: dict[str, Any], findings: list[dict[str, Any]], conformant: list[dict[str, Any]],

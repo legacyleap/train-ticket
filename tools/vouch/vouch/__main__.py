@@ -6,6 +6,7 @@
     python3 -m vouch comment review.json               # print the PR comment
     python3 -m vouch demo    --repo target-repo --out ui/data [--scenarios scenarios/scenarios.json]
     python3 -m vouch hook    install <repo>            # pre-push hook: review before you push
+    python3 -m vouch github-review review.json --repo owner/name --pr 5 --sha <head>   # inline comments on the PR (GitHub App)
     python3 -m vouch mcm     fetch --project <uuid> --data ui/data/<project>   # pull the real MCM from the LegacyLeap MCP server
     python3 -m vouch mcm     projects                  # list projects indexed on the server
     python3 -m vouch rules   list <repo>               # inferred + architect rules and their status
@@ -162,6 +163,11 @@ def cmd_hook(a: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == "github-review":
+        from .github_review import main as gh_main
+
+        return gh_main(argv[1:])
     p = argparse.ArgumentParser(prog="vouch", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
 
