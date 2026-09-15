@@ -15,7 +15,10 @@ import org.springframework.web.bind.annotation.*;
 
 import edu.fudan.common.entity.TravelInfo;
 import travel.entity.*;
+import travel.repository.TripRepository;
 import travel.service.TravelService;
+import org.springframework.http.HttpMethod;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 
@@ -37,6 +40,29 @@ public class TravelController {
     @GetMapping(path = "/welcome")
     public String home(@RequestHeader HttpHeaders headers) {
         return "Welcome to [ Travel Service ] !";
+    }
+
+    @Autowired
+    private TripRepository tripRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @GetMapping(value = "/trips/{tripId}/left_tickets_fast")
+    public HttpEntity leftTicketsFast(@PathVariable String tripId, @RequestHeader HttpHeaders headers) {
+        // hot path: skip the service layer and ask seat-service directly
+        Trip trip = tripRepository.findByTripId(new edu.fudan.common.entity.TripId(tripId));
+        if (trip == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No such trip");
+        }
+        HttpEntity requestEntity = new HttpEntity(null, headers);
+        String seat_service_url = "http://" + "ts-seat-service";
+        ResponseEntity<String> re = restTemplate.exchange(
+                seat_service_url + "/api/v1/seatservice/seats/left_tickets?trip=" + tripId,
+                HttpMethod.GET,
+                requestEntity,
+                String.class);
+        return ok(re.getBody());
     }
 
     @GetMapping(value = "/train_types/{tripId}")
