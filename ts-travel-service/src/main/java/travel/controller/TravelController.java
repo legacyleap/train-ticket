@@ -39,6 +39,15 @@ public class TravelController {
         return "Welcome to [ Travel Service ] !";
     }
 
+    @Autowired
+    private OrderSummaryService orderSummaryService;
+
+    @GetMapping(value = "/trips/{tripId}/order_summary")
+    public HttpEntity getOrderSummary(@PathVariable String tripId, @RequestHeader HttpHeaders headers) {
+        TravelController.LOGGER.info("[getOrderSummary][tripId: {}]", tripId);
+        return ok(orderSummaryService.getOrderSummary(tripId, headers));
+    }
+
     @GetMapping(value = "/train_types/{tripId}")
     public HttpEntity getTrainTypeByTripId(@PathVariable String tripId,
                                            @RequestHeader HttpHeaders headers) {
